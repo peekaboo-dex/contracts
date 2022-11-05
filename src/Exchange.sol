@@ -19,6 +19,9 @@ contract Exchange is IExchange, RSA {
     // Mapping of unsealed bids, by auction id
     mapping (uint256 => mapping (address => UnsealedBid)) public unsealedBids;
 
+    // Mapping of whether an account is settled for a given auction
+    mapping (uint256 => mapping (address => bool)) public settled;
+
     // Amount of time from when the puzzle is solved until the auction is finalized.
     // During this time any bids can be revealed, but the top bid will ve known to all.
     // So only the top bid need be submitted
@@ -65,7 +68,7 @@ contract Exchange is IExchange, RSA {
 
     // Solves the auction's puzzle. The solution is the secret key (p,q,d).
     // Once this is called anyone can decrypt the bids using the emitted event.
-    function solveAuctionPuzzle(uint256 auctionId, uint256 p, uint256 q, uint256 d) external {
+    function closeAuction(uint256 auctionId, uint256 p, uint256 q, uint256 d) external {
         // Verify inputs
         
         // Bids can now be revealed, so the auction is closed.
@@ -151,8 +154,13 @@ contract Exchange is IExchange, RSA {
     function finalizeAuction(uint256 auctionId) external {
         // Sanity check that we can finalize
         require(block.timestamp > auctions[auctionId].puzzleSolvedTimestamp + finalityDelay, "Auction cannot be finalized yet.");
-        
+        require(auctions[auctionId].state == AuctionState.CLOSED, "Auction is not yet closed. Cannot finalize.");
+
+        // Set auction state to finalized - write state here to avoid re-entrancy problems.
+        auctions[auctionId].state = AuctionState.FINALIZED;
+
         // Settle the auction. Two cases - either there is a winner or no winner.
+        address auctioneer = auctions[auctionId].auctioneer;
         address winner = auctions[auctionId].winner;
         uint256 winningBid = unsealedBids[auctionId][auctions[auctionId].winner].bid;
         uint256 obfuscation = unsealedBids[auctionId][auctions[auctionId].winner].obfuscation;
@@ -160,7 +168,7 @@ contract Exchange is IExchange, RSA {
             // Refund the NFT to the auctioneer
             IERC721(auctions[auctionId].tokenAddress).safeTransferFrom(
                 address(this),
-                auctions[auctionId].auctioneer,
+                auctioneer,
                 auctions[auctionId].tokenId
             );
             // Nobody bid / was revealed during the finality delay.
@@ -173,13 +181,20 @@ contract Exchange is IExchange, RSA {
                 auctions[auctionId].tokenId
             );
 
+            // Settle for winner. This means that no further refund is required.
+            settled[auctionId][winner] = true;
+        
+
             // Transfer obfuscation amount back to winner
             // We don't check the success because that would allow the bidder to grief the auction.
+            // No re-entrancy guard because state has already been updated.
             winner.call{value: obfuscation}("");
             
             // Transfer winning bid to auctioneer
             // We don't check the success because that would allow the auctioneer to grief the auction. 
-            auctions[auctionId].auctioneer.call{value: winningBid}("");
+            // No re-entrancy guard because state has already been updated.
+            auctioneer.call{value: winningBid}("");
+
         }
 
         emit AuctionFinalized(
@@ -191,7 +206,12 @@ contract Exchange is IExchange, RSA {
 
     // Losing bidder calls to reclaim all ETH sent
     function claimRefund(uint256 auctionId) external {
-
+        require(auctions[auctionId].state == AuctionState.FINALIZED, "Auction ,ust be finalized before claiming refund.");
+        require(!settled[auctionId][msg.sender], "This account has already settled");
+        uint256 refundAmount = sealedBids[auctionId][msg.sender].ethSent;
+        settled[auctionId][msg.sender] = true;
+        (bool ok,) = msg.sender.call{value: refundAmount}("");
+        require(ok, "Failed to claim refund");
     }
 
     function _isPuzzleSolved(Puzzle memory puzzle) internal pure returns (bool) {

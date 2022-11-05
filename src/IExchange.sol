@@ -86,9 +86,10 @@ interface IExchange {
     // Creates an auction for an NFT. Returns auction id.
     function createAuction(address tokenAddress, uint256 tokenId, bytes calldata publicKey, bytes calldata puzzle) external returns (uint256);
 
-    // Solves the auction's puzzle. The solution is the secret key (p,q,d).
+    // Close the auction by submitting the solution to the auction's puzzle.
+    // The solution is the secret key (p,q,d).
     // Once this is called anyone can decrypt the bids using the emitted event.
-    function solveAuctionPuzzle(uint256 auctionId, uint256 p, uint256 q, uint256 d) external;
+    function closeAuction(uint256 auctionId, uint256 p, uint256 q, uint256 d) external;
 
     // Bidder commits to their bid for a given auction.
     // The bid is encrypted with the auction's public key.
@@ -96,7 +97,6 @@ interface IExchange {
     function commitBid(uint256 auctionId, uint256 sealedBid) external payable;
 
     // Reveal bid for this bidder
-    // Return 
     function revealBid(uint256 auctionId, address bidder) external returns (uint256);
 
     function finalizeAuction(uint256 auctionId) external;
