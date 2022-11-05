@@ -96,7 +96,8 @@ interface IExchange {
     function commitBid(uint256 auctionId, uint256 sealedBid) external payable;
 
     // Reveal bid for this bidder
-    function revealBid(uint256 auctionId, address bidder) external;
+    // Return 
+    function revealBid(uint256 auctionId, address bidder) external returns (uint256);
 
     function finalizeAuction(uint256 auctionId) external;
 

@@ -97,7 +97,7 @@ contract Exchange is IExchange, RSA {
 
     // Reveal bid for input bidder. Sealed bids can be revealed once the puzzle has
     // been solved. Since once the puzzle is revealed 
-    function revealBid(uint256 auctionId, address bidder) external {
+    function revealBid(uint256 auctionId, address bidder) external returns (uint256) {
         // Sanity checks
         require(auctions[auctionId].state == AuctionState.CLOSED, "Bids can only be revealed when the auction is in CLOSED state");
 
@@ -144,6 +144,8 @@ contract Exchange is IExchange, RSA {
             isCurrentHighestBid,
             isValidBid
         );
+
+        return bid;
     }
 
     function finalizeAuction(uint256 auctionId) external {
@@ -189,7 +191,7 @@ contract Exchange is IExchange, RSA {
 
     // Losing bidder calls to reclaim all ETH sent
     function claimRefund(uint256 auctionId) external {
-        
+
     }
 
     function _isPuzzleSolved(Puzzle memory puzzle) internal pure returns (bool) {
