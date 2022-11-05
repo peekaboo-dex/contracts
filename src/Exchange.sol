@@ -2,12 +2,19 @@
 pragma solidity ^0.8.13;
 
 import "./IExchange.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 
 contract Exchange is IExchange {
 
+    // Current auction Id
+    uint256 public currentAuctionId;
+
+    // 
+
     // Creates an auction for an NFT.
     function createAuction(address tokenAddress, uint256 tokenId, bytes calldata publicKey, bytes calldata puzzle) external {
-
+        // Transfer token into exchange
+        IERC721(tokenAddress).safeTransferFrom(msg.sender, address(this));
     }
 
     // Solves the auction's puzzle. The solution is the secret key (p,q,d).
@@ -41,6 +48,6 @@ contract Exchange is IExchange {
 
     // Losing bidder calls to reclaim all ETH sent
     function claimLosingBidder(uint256 auctionId) external {
-        
+
     }
 }
