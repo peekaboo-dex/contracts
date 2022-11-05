@@ -17,12 +17,16 @@ contract Exchange is IExchange, RSA {
     mapping (uint256 => mapping (address => SealedBid)) public sealedBids;
 
     // Mapping of unsealed bids, by auction id
-    mapping (uint256 => mapping (address => uint256)) public unsealedBids;
+    mapping (uint256 => mapping (address => UnsealedBid)) public unsealedBids;
 
-    // 
+    // Amount of time from when the puzzle is solved until the auction is finalized.
+    // During this time any bids can be revealed, but the top bid will ve known to all.
+    // So only the top bid need be submitted
+    uint256 immutable public finalityDelay;
 
-
-
+    constructor(uint256 _finalityDelay) {
+        finalityDelay = _finalityDelay;
+    }
 
     // Creates an auction for an NFT.
     function createAuction(address tokenAddress, uint256 tokenId, bytes calldata publicKey, bytes calldata puzzle) external returns (uint256) {
@@ -43,6 +47,7 @@ contract Exchange is IExchange, RSA {
                 q: uint256(0),
                 d: uint256(0)
             }),
+            puzzleSolvedTimestamp: 0,
             currentHighestBidder: address(0),
             winner: address(0),
             state: AuctionState.OPEN
@@ -65,6 +70,7 @@ contract Exchange is IExchange, RSA {
         
         // Bids can now be revealed, so the auction is closed.
         auctions[auctionId].state = AuctionState.CLOSED;
+        auctions[auctionId].puzzleSolvedTimestamp = block.timestamp;
     }
 
     // Bidder commits to their bid for a given auction.
@@ -105,11 +111,12 @@ contract Exchange is IExchange, RSA {
 
         // Decrypt the sealed bid
         uint256 bid = decrypt(puzzle.p, puzzle.q, puzzle.d, sealedBid.value);
-        unsealedBids[auctionId][bidder] = bid;
-
-        // Validate bid and compute obfuscation
         bool isValidBid = sealedBid.ethSent >= bid;
         uint256 obfuscation = isValidBid ? sealedBid.ethSent - bid : 0;
+        unsealedBids[auctionId][bidder] = UnsealedBid({
+            bid: bid,
+            obfuscation: obfuscation
+        });
 
         // Check if this is the current highest bid
         bool isCurrentHighestBid = false;
@@ -118,7 +125,7 @@ contract Exchange is IExchange, RSA {
             address currentHighestBidder = auctions[auctionId].currentHighestBidder;
             if (currentHighestBidder == address(0)) {
                 isCurrentHighestBid = true;
-            } else if (bid > unsealedBids[auctionId][currentHighestBidder]) {
+            } else if (bid > unsealedBids[auctionId][currentHighestBidder].bid) {
                 // Note that if there's a tie then it's whoever gets there first.
                 isCurrentHighestBid = true;
             }
@@ -139,24 +146,50 @@ contract Exchange is IExchange, RSA {
         );
     }
 
-    function finalizeAuction(uint256 ) external {
-
-    }
-
-    // Auctioneer calls to claim the highest bid
-    function claimAuctioneer(uint256 auctionId) external {
+    function finalizeAuction(uint256 auctionId) external {
+        // Sanity check that we can finalize
+        require(block.timestamp > auctions[auctionId].puzzleSolvedTimestamp + finalityDelay, "Auction cannot be finalized yet.");
         
-    }
+        // Settle the auction. Two cases - either there is a winner or no winner.
+        address winner = auctions[auctionId].winner;
+        uint256 winningBid = unsealedBids[auctionId][auctions[auctionId].winner].bid;
+        uint256 obfuscation = unsealedBids[auctionId][auctions[auctionId].winner].obfuscation;
+        if (winner == address(0)) {
+            // Refund the NFT to the auctioneer
+            IERC721(auctions[auctionId].tokenAddress).safeTransferFrom(
+                address(this),
+                auctions[auctionId].auctioneer,
+                auctions[auctionId].tokenId
+            );
+            // Nobody bid / was revealed during the finality delay.
+            auctions[auctionId].state = AuctionState.FINALIZED;
+        } else {
+            // Transfer the NFT to the bidder
+            IERC721(auctions[auctionId].tokenAddress).safeTransferFrom(
+                address(this),
+                winner,
+                auctions[auctionId].tokenId
+            );
 
-    // Winning bidder calls to claim NFT
-    // They are refunded the obfuscation amount
-    function claimWinningBidder(uint256 auctionId) external {
+            // Transfer obfuscation amount back to winner
+            // We don't check the success because that would allow the bidder to grief the auction.
+            winner.call{value: obfuscation}("");
+            
+            // Transfer winning bid to auctioneer
+            // We don't check the success because that would allow the auctioneer to grief the auction. 
+            auctions[auctionId].auctioneer.call{value: winningBid}("");
+        }
 
+        emit AuctionFinalized(
+            auctionId,
+            winner,
+            winningBid
+        );
     }
 
     // Losing bidder calls to reclaim all ETH sent
-    function claimLosingBidder(uint256 auctionId) external {
-
+    function claimRefund(uint256 auctionId) external {
+        
     }
 
     function _isPuzzleSolved(Puzzle memory puzzle) internal pure returns (bool) {

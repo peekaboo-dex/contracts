@@ -23,6 +23,7 @@ interface IExchange {
         uint256 tokenId;
         bytes publicKey;
         Puzzle puzzle;
+        uint256 puzzleSolvedTimestamp;
         address currentHighestBidder;
         address winner;
         AuctionState state;
@@ -31,6 +32,11 @@ interface IExchange {
     struct SealedBid {
         uint256 value;
         uint256 ethSent;
+    }
+
+    struct UnsealedBid {
+        uint256 bid;
+        uint256 obfuscation;
     }
 
     // difficulty is the time parameter to the t-squarings VDF
@@ -66,19 +72,15 @@ interface IExchange {
         bool isValidBid
     );
 
-    event ClaimByAuctioneer(
+    event AuctionFinalized(
         uint256 indexed auctionId,
-        uint256 bid
+        address winner,
+        uint256 winningBid
     );
 
-    event ClaimByWinningBidder(
+    event Refund(
         uint256 indexed auctionId,
-        uint256 refund
-    );
-
-    event ClaimByLosingBidder(
-        uint256 indexed auctionId,
-        uint256 refund
+        uint256 amount
     );
 
     // Creates an auction for an NFT. Returns auction id.
@@ -96,13 +98,7 @@ interface IExchange {
     // Reveal bid for this bidder
     function revealBid(uint256 auctionId, address bidder) external;
 
-    // Auctioneer calls to claim the highest bid
-    function claimAuctioneer(uint256 auctionId) external;
+    function finalizeAuction(uint256 auctionId) external;
 
-    // Winning bidder calls to claim NFT
-    // They are refunded the obfuscation amount
-    function claimWinningBidder(uint256 auctionId) external;
-
-    // Losing bidder calls to reclaim all ETH sent
-    function claimLosingBidder(uint256 auctionId) external;
+    function claimRefund(uint256 auctionId) external;
 }
