@@ -25,7 +25,7 @@ contract Exchange is IExchange {
 
 
     // Creates an auction for an NFT.
-    function createAuction(address tokenAddress, uint256 tokenId, bytes calldata publicKey, bytes calldata puzzle) external {
+    function createAuction(address tokenAddress, uint256 tokenId, bytes calldata publicKey, bytes calldata puzzle) external returns (uint256) {
         // Transfer token into exchange
         IERC721(tokenAddress).safeTransferFrom(msg.sender, address(this), tokenId);
 
@@ -55,11 +55,13 @@ contract Exchange is IExchange {
             publicKey,
             puzzle
         );
+        return auctionId;
     }
 
     // Solves the auction's puzzle. The solution is the secret key (p,q,d).
     // Once this is called anyone can decrypt the bids using the emitted event.
     function solveAuctionPuzzle(uint256 auctionId, uint256 p, uint256 q, uint256 d) external {
+        // Verify inputs
         
         // Bids can now be revealed, so the auction is closed.
         auctions[auctionId].state = AuctionState.CLOSED;
@@ -69,7 +71,22 @@ contract Exchange is IExchange {
     // The bid is encrypted with the auction's public key.
     // msg.value = bid + obfuscation
     function commitBid(uint256 auctionId, uint256 sealedBid) external payable {
-        // Sanity check that ETH sent is not zero and sealed bid is not zero
+        // Sanity checks
+        require(auctions[auctionId].state == AuctionState.OPEN, "Auction is not open");
+        require(sealedBid != 0, "Sealed bid must be non-zero");
+        require(msg.value != 0, "Must send ETH");
+
+        // Commit bid
+        sealedBids[auctionId][msg.sender] = SealedBid({
+            value: sealedBid,
+            ethSent: msg.value
+        });
+        emit BidCommitted(
+            auctionId,
+            msg.sender,
+            sealedBid,
+            msg.value
+        );
     }
 
     // Reveal bid for input bidder. Sealed bids can be revealed once the puzzle has
