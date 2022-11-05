@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
+
 pragma solidity >=0.7.0 <0.9.0;
 
 /**
@@ -6,7 +7,7 @@ pragma solidity >=0.7.0 <0.9.0;
  * @dev Store & retrieve value in a variable
  * @custom:dev-run-script ./scripts/deploy_with_ethers.ts
  */
-library rsa {
+contract Storage {
 
     // Baseline: calling EIP-198 precompile
     // https://github.com/ethereum/EIPs/blob/master/EIPS/eip-198.md
@@ -53,6 +54,31 @@ library rsa {
         require(mulmod(d, e, carmichael) == 1, "Bad RSA Secret Key");
     }
 
+    function _gcd(uint256 a, uint256 b) 
+        internal
+        pure 
+        returns (uint256)
+    {
+        uint256 _a = a;
+        uint256 _b = b;
+        uint256 temp;
+        while (_b > 0) {
+            temp = _b;
+            _b = _a % _b; // % is remainder
+            _a = temp;
+        }
+        return _a;
+    }
+
+    function _lcm(uint256 a, uint256 b) 
+        internal 
+        pure
+        returns (uint256)
+    {
+        return a * (b / _gcd(a, b));
+    }
+
+
 
     // function doit(uint256 p, uint256 q, uint256 lcm_pq, uint256 d, uint256 e) external {
     function doit() external pure returns (uint256) {
@@ -81,6 +107,9 @@ library rsa {
         uint256 N = 73069949837833579517014046071513039757139829296612665023572018121217403437357;
         uint256 e = 65537;
         uint256 carmichael = 36534974918916789758507023035756519878295945424590451627179304964912003714670;
+        uint256 p = 318569511894869251183365247322746989427;
+        uint256 q = 229368935536892518030042944070649018591;
+        return _lcm(p-1, q-1);
 
         // Sanity check RSA secret key
         assertRSASecretKey(d, e, carmichael);
