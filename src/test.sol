@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-contract Assign {
+contract RunAuction {
 
   uint256 private a;
 
