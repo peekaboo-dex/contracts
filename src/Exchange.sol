@@ -5,7 +5,7 @@ import "./IExchange.sol";
 import "./RSA.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
-contract Exchange is IExchange {
+contract Exchange is IExchange, RSA {
 
     // Current auction Id
     uint256 public currentAuctionId;
@@ -14,10 +14,10 @@ contract Exchange is IExchange {
     mapping (uint256 => Auction) public auctions;
 
     // Mapping of all bids, by aucition id
-    mapping (uint256 => mapping (address => SealedBid)) sealedBids;
+    mapping (uint256 => mapping (address => SealedBid)) public sealedBids;
 
     // Mapping of unsealed bids, by auction id
-    mapping (uint256 => mapping (address => SealedBid)) unsealedBids;
+    mapping (uint256 => mapping (address => uint256)) public unsealedBids;
 
     // 
 
@@ -101,10 +101,10 @@ contract Exchange is IExchange {
 
         // Fetch the sealed bid.
         SealedBid memory sealedBid = sealedBids[auctionId][bidder];
-        require(sealedBid. != 0, "No sealed bid exists for user.");
+        require(sealedBid.value != 0 && sealedBid.ethSent != 0, "No sealed bid exists for user.");
 
         // Decrypt the sealed bid
-        uint256 bid = RSA.decrypt(puzzle.p, puzzle.q, puzzle.d, sealedBid.value);
+        uint256 bid = decrypt(puzzle.p, puzzle.q, puzzle.d, sealedBid.value);
         unsealedBids[auctionId][bidder] = bid;
 
         // Validate bid and compute obfuscation
@@ -115,7 +115,7 @@ contract Exchange is IExchange {
         bool isCurrentHighestBid = false;
         if (isValidBid) {
             // Fetcn current highest bidder
-            uint256 currentHighestBidder = auctions[auctionId].currentHighestBidder;
+            address currentHighestBidder = auctions[auctionId].currentHighestBidder;
             if (currentHighestBidder == address(0)) {
                 isCurrentHighestBid = true;
             } else if (bid > unsealedBids[auctionId][currentHighestBidder]) {

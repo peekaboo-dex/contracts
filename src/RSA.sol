@@ -80,7 +80,7 @@ contract RSA {
     // secret key = (p,q)
     // rsa secret key = d
     // cipher text = c
-    function decrypt(uint256 p, uint256 q, uint256 d, uint256 c) external view returns (uint256) {
+    function decrypt(uint256 p, uint256 q, uint256 d, uint256 c) public view returns (uint256) {
         uint256 carmichael = _lcm(p-1, q-1);
         assertRSASecretKey(d, RSA_EXPONENT, carmichael);
         uint256 decryptedMsg = modexp(c, d, p * q);

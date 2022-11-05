@@ -81,8 +81,8 @@ interface IExchange {
         uint256 refund
     );
 
-    // Creates an auction for an NFT.
-    function createAuction(address tokenAddress, uint256 tokenId, bytes calldata publicKey, bytes calldata puzzle) external;
+    // Creates an auction for an NFT. Returns auction id.
+    function createAuction(address tokenAddress, uint256 tokenId, bytes calldata publicKey, bytes calldata puzzle) external returns (uint256);
 
     // Solves the auction's puzzle. The solution is the secret key (p,q,d).
     // Once this is called anyone can decrypt the bids using the emitted event.
