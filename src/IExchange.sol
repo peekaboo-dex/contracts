@@ -3,22 +3,27 @@ pragma solidity ^0.8.13;
 
 interface IExchange {
 
-
-    /// https://github.com/paulrberg/prb-math/tree/main/contracts 
-
     // difficulty is the time parameter to the t-squarings VDF
     event AuctionCreated(
         uint256 indexed auctionId,
         address indexed auctioneer,
         address tokenAddress,
         uint256 tokenId,
-        uint256 difficulty
+        bytes publicKey,
+        bytes puzzle
+    );
+
+    event AuctionPuzzleSolved(
+        uint256 indexed auctionId,
+        uint256 p,
+        uint256 q,
+        uint256 d
     );
 
     event BidCommitted(
         uint256 indexed auctionId,
         address indexed bidder,
-        bytes32 sealedBid,
+        uint256 sealedBid,
         uint256 ethSent
     );
 
@@ -26,7 +31,8 @@ interface IExchange {
         uint256 indexed auctionId, 
         address indexed bidder,
         uint256 bid,
-        uint256 obfuscationAmount
+        uint256 obfuscation,
+        bool isCurrentWinner
     );
 
     event ClaimByAuctioneer(
@@ -34,50 +40,38 @@ interface IExchange {
         uint256 bid
     );
 
-    event ClaimByBidder(
+    event ClaimByWinningBidder(
         uint256 indexed auctionId,
-        uint256 refund,
-        bool isWinner
+        uint256 refund
+    );
+
+    event ClaimByLosingBidder(
+        uint256 indexed auctionId,
+        uint256 refund
     );
 
     // Creates an auction for an NFT.
-    // tokenAddress of NFT
-    // tokenId of NFT
-    // Emits AuctionCreated() event
-    function CreateAuction(address tokenAddress, uint256 tokenId, uint256 difficulty, uint256 bidPeriodInBlocks) external;
+    function createAuction(address tokenAddress, uint256 tokenId, bytes calldata publicKey, bytes calldata puzzle) external;
+
+    // Solves the auction's puzzle. The solution is the secret key (p,q,d).
+    // Once this is called anyone can decrypt the bids using the emitted event.
+    function solveAuctionPuzzle(uint256 auctionId, uint256 p, uint256 q, uint256 d) external;
 
     // Bidder commits to their bid for a given auction.
-    // auctionId of corresponding auction.
-    // sealedBid is bid XOR keccak256((VDF))
-    //           ... bid should be obfuscated so if it's like 1 ETH it should be 0.999999999236423784623784 XOR keccak256(VDF)
-    // msg.value Send bid amount plus some obfuscation amount, which is refunded by `claimBidder`.
-    // Emits BidCommitted() event
+    // The bid is encrypted with the auction's public key.
+    // msg.value = bid + obfuscation
+    function commitBid(uint256 auctionId, uint256 sealedBid) external payable;
 
-    // Suppose they want to bid 1 ETH.
-    // We obfuscate it to like 0.999999999236423784623784
-    // We then generate the challenge (aa in the example; for us it'll be a random bytes32)
-    // We then compute the VDF = `vdf-cli challenge difficulty`, difficulty comes from the CreateAuction event
-    // sealedBid = bid XOR keccak256(VDF)
-    // But then the user  further ubfuscates byt sending in ANY amount with their bid
-    // bid = 0.999999999236423784623784 + 234 ETH
-    function CommitBid(uint256 auctionId, bytes32 sealedBid, bytes32 challenge) external payable;
+    // Reveal bid for this bidder
+    function revealBid(uint256 auctionId, address bidder) external;
 
-    // Only need to reveal the winning bid.
-    // Only the winning bid needs to be revealed.
-    // This will assert `bid XOR keccak256(VDF) == sealedBid`
-
-    // Read the challenge from the BidCommitted event
-    // Read the difficulty from the AuctionCreated event
-    // Compute VDF = `vdf-cli challenge difficulty`
-    // bid = sealedBid XOR keccak256(VDF)
-    function RevealBid(address bidder, uint256 bid, bytes calldata vdf, uint256 obfuscationAmount) external;
-
-    // 
-    // diffiulty is 2 minutes.
-    // Length has to be 2 x 2 minutes. Because someone could commit theirs at the last second.
-
+    // Auctioneer calls to claim the highest bid
     function claimAuctioneer(uint256 auctionId) external;
 
-    // 
-    function claimBidder(uint256 auctionId) external;
+    // Winning bidder calls to claim NFT
+    // They are refunded the obfuscation amount
+    function claimWinningBidder(uint256 auctionId) external;
+
+    // Losing bidder calls to reclaim all ETH sent
+    function claimLosingBidder(uint256 auctionId) external;
 }
