@@ -3,6 +3,36 @@ pragma solidity ^0.8.13;
 
 interface IExchange {
 
+    struct Puzzle {
+        bytes input;
+        uint256 p;
+        uint256 q;
+        uint256 d;
+    }
+
+    enum AuctionState {
+        OPEN,
+        CLOSED,
+        FINALIZED
+    }
+
+    struct Auction {
+        uint256 auctionId;
+        address auctioneer;
+        address tokenAddress;
+        uint256 tokenId;
+        bytes publicKey;
+        Puzzle puzzle;
+        address currentHighestBidder;
+        address winner;
+        AuctionState state;
+    }
+
+    struct SealedBid {
+        uint256 value;
+        uint256 ethSent;
+    }
+
     // difficulty is the time parameter to the t-squarings VDF
     event AuctionCreated(
         uint256 indexed auctionId,
@@ -32,7 +62,8 @@ interface IExchange {
         address indexed bidder,
         uint256 bid,
         uint256 obfuscation,
-        bool isCurrentWinner
+        bool isCurrentHighestBid,
+        bool isValidBid
     );
 
     event ClaimByAuctioneer(

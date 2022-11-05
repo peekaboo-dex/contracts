@@ -41,6 +41,7 @@ contract RSA {
         }
     }
 
+    // https://gist.github.com/3esmit/8c0a63f17f2f2448cc1576eb27fe5910
     function _gcd(uint256 a, uint256 b) 
         internal
         pure 
@@ -57,6 +58,7 @@ contract RSA {
         return _a;
     }
 
+    // https://gist.github.com/3esmit/8c0a63f17f2f2448cc1576eb27fe5910
     function _lcm(uint256 a, uint256 b) 
         internal 
         pure
