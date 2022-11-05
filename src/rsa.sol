@@ -2,12 +2,9 @@
 
 pragma solidity >=0.7.0 <0.9.0;
 
-/**
- * @title Storage
- * @dev Store & retrieve value in a variable
- * @custom:dev-run-script ./scripts/deploy_with_ethers.ts
- */
-contract Storage {
+contract RSA {
+
+    uint256 constant RSA_EXPONENT = 65537;
 
     // Baseline: calling EIP-198 precompile
     // https://github.com/ethereum/EIPs/blob/master/EIPS/eip-198.md
@@ -44,16 +41,6 @@ contract Storage {
         }
     }
 
-    // d is secret key
-    function assertRSASecretKey(uint256 d, uint256 e, uint256 carmichael) internal pure {
-        // To compute the RSA key, we would do:
-        //       d = pow(e, -1, carmichael)
-        // Note that:
-        //       d * e [is congruent to] 1 (mod charmichael)
-        // We can thus sanity check as follows:
-        require(mulmod(d, e, carmichael) == 1, "Bad RSA Secret Key");
-    }
-
     function _gcd(uint256 a, uint256 b) 
         internal
         pure 
@@ -78,48 +65,33 @@ contract Storage {
         return a * (b / _gcd(a, b));
     }
 
+    // d is secret key
+    function assertRSASecretKey(uint256 d, uint256 e, uint256 carmichael) internal pure {
+        // To compute the RSA key, we would do:
+        //       d = pow(e, -1, carmichael)
+        // Note that:
+        //       d * e [is congruent to] 1 (mod charmichael)
+        // We can thus sanity check as follows:
+        require(mulmod(d, e, carmichael) == 1, "Bad RSA Secret Key");
+    }
 
+    // secret key = (p,q)
+    // rsa secret key = d
+    // cipher text = c
+    function decrypt(uint256 p, uint256 q, uint256 d, uint256 c) external view returns (uint256) {
+        uint256 carmichael = _lcm(p-1, q-1);
+        assertRSASecretKey(d, RSA_EXPONENT, carmichael);
+        uint256 decryptedMsg = modexp(c, d, p * q);
+        return decryptedMsg;
+    }
 
-    // function doit(uint256 p, uint256 q, uint256 lcm_pq, uint256 d, uint256 e) external {
-    function doit() external pure returns (uint256) {
-
-        // https://math.stackexchange.com/questions/586595/finding-modular-of-a-fraction
-        // 1 / e % lcm_pq
-        // Verify d
-        // require(d * e == 1 % lcm_pq, "Invalid d");
-        // d = pow()
-
-        /* 
-
-        c:  53629025865139430364679661915032900130265525417328715334434279225847008244318
-        N:  73069949837833579517014046071513039757139829296612665023572018121217403437357
-        p:  318569511894869251183365247322746989427
-        q:  229368935536892518030042944070649018591
-        carmichael:  36534974918916789758507023035756519878295945424590451627179304964912003714670
-        e:  65537
-        d:  30606828630747341320342876325314558354488034112734631821521054984032893479203
-        m:  4909101704780246817740844133125094986488746117432125378220703890793963498682
-
-        */
-
-        uint256 c = 53629025865139430364679661915032900130265525417328715334434279225847008244318;
-        uint256 d = 30606828630747341320342876325314558354488034112734631821521054984032893479203;
-        uint256 N = 73069949837833579517014046071513039757139829296612665023572018121217403437357;
-        uint256 e = 65537;
-        uint256 carmichael = 36534974918916789758507023035756519878295945424590451627179304964912003714670;
+    function test() external view {
         uint256 p = 318569511894869251183365247322746989427;
         uint256 q = 229368935536892518030042944070649018591;
-        return _lcm(p-1, q-1);
-
-        // Sanity check RSA secret key
-        assertRSASecretKey(d, e, carmichael);
-
-
-        // Last Check
-        //uint256 decryptedMsg = modexp(c, d, N);
-        //return decryptedMsg;
-
-
-        //return (c ** d) % N;
+        uint256 c = 53629025865139430364679661915032900130265525417328715334434279225847008244318;
+        uint256 d = 30606828630747341320342876325314558354488034112734631821521054984032893479203;
+        
+        uint256 m = RSA(address(this)).decrypt(p,q,d,c);
+        require(m == 4909101704780246817740844133125094986488746117432125378220703890793963498682, "Wrong msg!");
     }
 }
