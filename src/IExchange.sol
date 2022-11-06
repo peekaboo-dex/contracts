@@ -21,7 +21,7 @@ interface IExchange {
         address auctioneer;
         address tokenAddress;
         uint256 tokenId;
-        bytes publicKey;
+        uint256 publicKey;
         Puzzle puzzle;
         uint256 puzzleSolvedTimestamp;
         address currentHighestBidder;
@@ -45,7 +45,7 @@ interface IExchange {
         address indexed auctioneer,
         address tokenAddress,
         uint256 tokenId,
-        bytes publicKey,
+        uint256 publicKey,
         bytes puzzle
     );
 
@@ -84,7 +84,7 @@ interface IExchange {
     );
 
     // Creates an auction for an NFT. Returns auction id.
-    function createAuction(address tokenAddress, uint256 tokenId, bytes calldata publicKey, bytes calldata puzzle) external returns (uint256);
+    function createAuction(address tokenAddress, uint256 tokenId, uint256 publicKey, bytes calldata puzzle) external returns (uint256);
 
     // Close the auction by submitting the solution to the auction's puzzle.
     // The solution is the secret key (p,q,d).

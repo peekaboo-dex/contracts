@@ -8,6 +8,14 @@ from Crypto.Util import number
 from Crypto.Hash import SHAKE256
 import argparse
 
+def hexEncodePuzzle(C):
+    if len(C) != 3:
+        raise Exception("Expected puzzle of length 3")
+    puzzleComponents = ["{0:#0{1}x}".format(entry,64) for entry in C]
+    puzzle = "0x%s%s%s"%(puzzleComponents[0][2:], puzzleComponents[1][2:], puzzleComponents[2][2:])
+    return puzzle
+
+
 #Verifier Setup - Setup the modulus a Blum Integer
 def Setup(x, bits, t):
     def genPrime(bits):
@@ -44,6 +52,12 @@ def Setup(x, bits, t):
         return C, t
     #t = 1000000
     C, t = Gen(pp, t)
+
+    print({
+        "publicKey": pp,
+        "puzzle": hexEncodePuzzle(C)
+    })
+
     return pp, C, t
 
 #Verifier Encrypt
@@ -86,15 +100,9 @@ def Test():
 
     start_time = time.time()
     pp, C, t = Setup(1,128,t)
-    print('\n')
-    print('len(N)', len(bin(pp)) - 2)
-    print('Public Key:', pp, '\nPuzzle:',  C,  '\nt:', t)
-
-    puzzleComponents = ["{0:#0{1}x}".format(entry,64) for entry in C]
-    puzzle = "0x%s%s%s"%(puzzleComponents[0][2:], puzzleComponents[1][2:], puzzleComponents[2][2:])
-    print(puzzleComponents)
-    print(puzzle)
-    exit(1)
+    #print('\n')
+    #print('len(N)', len(bin(pp)) - 2)
+    #print('Public Key:', pp, '\nPuzzle:',  C,  '\nt:', t)
 
     print('Set:' , round(time.time() - start_time , 4), 'seconds')
 

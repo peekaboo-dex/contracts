@@ -32,7 +32,7 @@ contract Exchange is IExchange, RSA {
     }
 
     // Creates an auction for an NFT.
-    function createAuction(address tokenAddress, uint256 tokenId, bytes calldata publicKey, bytes calldata puzzle) external returns (uint256) {
+    function createAuction(address tokenAddress, uint256 tokenId, uint256 publicKey, bytes calldata puzzle) external returns (uint256) {
         // Transfer token into exchange
         IERC721(tokenAddress).safeTransferFrom(msg.sender, address(this), tokenId);
 
