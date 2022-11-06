@@ -5,8 +5,25 @@ Peekaboo is a blind auction for NFTs that improves upon existing mechanisms, lik
 
 # How it Works
 
+### Creating an Auction
+To auction your NFT:
+1.	Privately construct security parameter 1k and time parameter t.
+2.	Generate a Public Key and Puzzle
+3.	Send NFT, Public Key, Puzzle to our smart contract via the `createAuction` function. The inputs are emitted as an event.
+4.	The auction is now in session!
 
+### Bidding on an Auction
+To bid on an auction:
+1.	Encrypt your bid using the auctions Public Key (that was emitted when the auction was created).
+2.	Send your sealed bid to the smart contract along with obfuscated ETH, via the `commitBid` function.
+3.	The sealed bid is emitted in an event.
 
+### Closing an Auction
+Anyone can solve the auction's Puzzle (which was emitted in an event when the auction was created). Solving the puzzle reveals the secret key, which can be used to decrypt all of the sealed bids simultaneously. To close the auction:
+1. Call the smart contract function `closeAuction` with the solution to the auction's Puzzle.
+2. The solution is verified on-chain and emitted in an event.
+
+### Revealing the Winner
 
 
 
