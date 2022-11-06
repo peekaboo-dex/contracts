@@ -71,7 +71,13 @@ def Eval(pp, C, t):
     #factor2 = math.gcd(x+x_prime, N) #O(M(N)logN)
     factor2 = N//factor1 #O(M(N)), so logN better than finding gcd
     y = (factor1, factor2)
-    return y
+
+    ### We need `d`! 
+    e = 65537
+    carmichael = np.lcm.reduce([y[0] - 1, y[1] - 1])
+    d = pow(e, -1, carmichael)
+
+    return y, d
 
 
 #Prover Decrypt

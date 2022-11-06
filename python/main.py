@@ -79,7 +79,7 @@ def solve(public_key, puzzle, t):
 
 class Actor(object):
     tokenAddress = "0xf5de760f2e916647fd766B4AD9E85ff943cE3A2b"
-    tokenId = 2090420
+    tokenId = 2090417
     tokenAbi = None
     exchangeAbi = None
     privateKey = None
@@ -91,12 +91,16 @@ class Actor(object):
     def __init__(self, privateKey, exchangeAddress):
         self.privateKey = privateKey
         self.account = Account.from_key(privateKey)
+        print("address = ", self.account.address)
         self.w3 = Web3(Web3.WebsocketProvider("wss://eth-goerli.g.alchemy.com/v2/k-jYAANHqECw4itc_Y8Hn1f7XRXhr86K"))
         self.exchangeAddress = exchangeAddress
         self.tokenAbi = json.load(open("out/ERC721.sol/ERC721.json"))["abi"]
         self.token =  self.w3.eth.contract(address=self.tokenAddress, abi=self.tokenAbi)
         self.exchangeAbi = json.load(open("out/Exchange.sol/Exchange.json"))["abi"]
         self.exchange = self.w3.eth.contract(address=exchangeAddress, abi=self.exchangeAbi)
+
+    def call(self, fn):
+        print(fn.call())
 
     def exec(self, fn):
         tx = fn.buildTransaction({
@@ -106,13 +110,30 @@ class Actor(object):
         signedTx = self.w3.eth.account.sign_transaction(tx, self.privateKey)
         txHash = self.w3.eth.send_raw_transaction(signedTx.rawTransaction)
         txReceipt = self.w3.eth.wait_for_transaction_receipt(txHash)
-        print(txReceipt)
+        return txReceipt
 
     def setApproval(self):
+        print("Setting approval to %s for %d"%(self.exchangeAddress, self.tokenId))
         self.exec(self.token.functions.approve(self.exchangeAddress, self.tokenId))
 
     def startAuction(self, publicKey, puzzle):
+        print("Auctioning token id = ", self.tokenId)
+        fn = self.exchange.functions.createAuction(self.tokenAddress, self.tokenId, publicKey, puzzle)
+        auctionId = fn.call({'from': self.address()})
+        self.exec(fn)
+        return auctionId
+
+    def commitBid(self, publicKey, puzzle):
         self.exec(self.exchange.functions.createAuction(self.tokenAddress, self.tokenId, publicKey, puzzle))
+
+    def closeAuction(self, auctionId, p, q, d):
+        self.exec(self.exchange.functions.closeAuction(auctionId, p, q, d))
+
+    def finalizeAuction(self, auctionId):
+        self.exec(self.exchange.functions.finalizeAuction(auctionId))
+
+    def address(self):
+        return self.account.address
 
 
 
@@ -128,15 +149,59 @@ def demo(contract):
     auctioneer = Actor(auctioneerPrivateKey, contract)
     auctioneer.setApproval()
 
+
     #### First thing we do is setup the auction puzzle
     print("******* Setting up auction (off-chain)")
-    t = 10000
+    t = 13000000
     publicKey, puzzle, _ = rsavdf.Setup(1, 128, t)
     hexEncodedPuzzle = hexEncodePuzzle(puzzle)
+    print("Public Key: ", publicKey)
+    print("hexPuzzle: ", hexEncodedPuzzle)
 
     ### Start auction
     print("******** Starting Auction (on-chain)")
-    auctioneer.startAuction(publicKey, hexEncodedPuzzle)
+    auctionId = auctioneer.startAuction(publicKey, hexEncodedPuzzle)
+    print("AuctionId=", auctionId)
+
+    '''
+    ### Send Bids
+    bidderPrivateKeys = [
+        "0x3b479a94b50a0d4f445f0c9344586e977f8f57fb39428dcdcb32db3d116cd63f", # 0x867Dfc2Db0406451521528BcA135Fb1f772786E3 
+        "0x4b479a94b50a0d4f445f0c9344586e977f8f57fb39428dcdcb32db3d116cd63f", # 0xF789F38b269Baf9913e70B6C91f4F622Cb3B47aB
+        "0x5b479a94b50a0d4f445f0c9344586e977f8f57fb39428dcdcb32db3d116cd63f", # 0x896789824e8FAfA2372fF418944CD53aAe76aA00
+        "0x6b479a94b50a0d4f445f0c9344586e977f8f57fb39428dcdcb32db3d116cd63f", # 0x41D34dd62686bF75b8666150D49D5046C7aAA945
+        "0x7b479a94b50a0d4f445f0c9344586e977f8f57fb39428dcdcb32db3d116cd63f"  # 0xa6A8260db44C169Bd94CD7b6809B595382A8F832
+    ]
+    bidders = [Actor(k, contract) for k in bidderPrivateKeys]
+    for bidder in bidders:
+        bidder.
+
+    '''
+
+
+    ### Solve Puzzle
+    print("******* Solving Puzzle")
+    start_time = time.time()
+    y,d = rsavdf.Eval(publicKey, puzzle, t)
+    p = y[0]
+    q = y[1]
+    delay = round(time.time() - start_time , 4)
+    print("******* Solved Cryprographic Puzzle in %ds"%delay)
+    print("p=", p)
+    print("q=", q)
+    print("d=", d)
+
+    ### Close the Auction
+    print("******* Closing Auction")
+    auctioneer.closeAuction(auctionId, p, q, d)
+
+    ### Reveal the bid of someone
+    print("******* Revealing Winning Bid")
+
+    ### 
+    print("******* Finalizing Auction (Settlement)")
+    auctioneer.finalizeAuction(auctionId)
+ 
 
     '''
 
