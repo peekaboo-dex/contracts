@@ -75,5 +75,5 @@ python3 python/main.py demo --contract 0x397B9515A053c70620a34a4B92bc049F0e31F0d
 ```
 
 ### Demo Output
-
+<img src="https://github.com/peekaboo-dex/contracts/blob/main/demo_output.png" />
 
