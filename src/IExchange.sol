@@ -25,7 +25,6 @@ interface IExchange {
         Puzzle puzzle;
         uint256 puzzleSolvedTimestamp;
         address currentHighestBidder;
-        address winner;
         AuctionState state;
     }
 

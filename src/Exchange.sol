@@ -57,7 +57,6 @@ contract Exchange is IExchange, RSA, IERC721Receiver {
             }),
             puzzleSolvedTimestamp: 0,
             currentHighestBidder: address(0),
-            winner: address(0),
             state: AuctionState.OPEN
         });
         emit AuctionCreated(
@@ -74,7 +73,7 @@ contract Exchange is IExchange, RSA, IERC721Receiver {
     // Solves the auction's puzzle. The solution is the secret key (p,q,d).
     // Once this is called anyone can decrypt the bids using the emitted event.
     function closeAuction(uint256 auctionId, uint256 p, uint256 q, uint256 d) external {
-        // TODO - sanity checking
+        // TODO - sanity checks
 
         // Store puzzle solution
         auctions[auctionId].puzzle.p = p;
@@ -101,7 +100,7 @@ contract Exchange is IExchange, RSA, IERC721Receiver {
         require(auctions[auctionId].state == AuctionState.OPEN, "Auction is not open");
         require(sealedBid != 0, "Sealed bid must be non-zero");
         require(msg.value != 0, "Must send ETH");
-        // require that user has not already submitted
+        // TODO - require that user has not already submitted
 
         // Commit bid
         sealedBids[auctionId][msg.sender] = SealedBid({
@@ -179,9 +178,9 @@ contract Exchange is IExchange, RSA, IERC721Receiver {
 
         // Settle the auction. Two cases - either there is a winner or no winner.
         address auctioneer = auctions[auctionId].auctioneer;
-        address winner = auctions[auctionId].winner;
-        uint256 winningBid = unsealedBids[auctionId][auctions[auctionId].winner].bid;
-        uint256 obfuscation = unsealedBids[auctionId][auctions[auctionId].winner].obfuscation;
+        address winner = auctions[auctionId].currentHighestBidder;
+        uint256 winningBid = unsealedBids[auctionId][auctioneer].bid;
+        uint256 obfuscation = unsealedBids[auctionId][auctioneer].obfuscation;
         if (winner == address(0)) {
             // Refund the NFT to the auctioneer
             IERC721(auctions[auctionId].tokenAddress).safeTransferFrom(
