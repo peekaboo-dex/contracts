@@ -126,6 +126,9 @@ class Actor(object):
     def commitBid(self, publicKey, puzzle):
         self.exec(self.exchange.functions.createAuction(self.tokenAddress, self.tokenId, publicKey, puzzle))
 
+    def revealBid(self, auctionId, bidder):
+        self.exec(self.exchange.functions.finalizeAuction(auctionId, bidder))
+
     def closeAuction(self, auctionId, p, q, d):
         self.exec(self.exchange.functions.closeAuction(auctionId, p, q, d))
 
@@ -163,6 +166,13 @@ def demo(contract):
     auctionId = auctioneer.startAuction(publicKey, hexEncodedPuzzle)
     print("AuctionId=", auctionId)
 
+    ### Send bids
+    ### In the demo we want the NFT to cycle back to him so we can demo on loop
+    print("******** Submitting bids (on-chain)")
+    bid = 1000000000000
+    sealedBid = rsavdf.Enc(bid, publicKey, 65537)
+    auctioneer.commitBid(publicKey, sealedBid)
+
     '''
     ### Send Bids
     bidderPrivateKeys = [
@@ -195,8 +205,10 @@ def demo(contract):
     print("******* Closing Auction")
     auctioneer.closeAuction(auctionId, p, q, d)
 
-    ### Reveal the bid of someone
-    print("******* Revealing Winning Bid")
+    ### Reveal the bid of winner -- who is the auctioneer, for the purposes of the demo.
+    ### (this is so the NFT cycles from auctioneer, to auction, back to auctioneer) and we can restart.
+    print("******* Revealing Winning Bid! (Only winner has to be revealed)")
+    auctioneer.revealBid(auctionId, auctioneer)
 
     ### 
     print("******* Finalizing Auction (Settlement)")
