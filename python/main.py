@@ -78,59 +78,42 @@ def solve(public_key, puzzle, t):
 # https://docs.moonbeam.network/builders/build/eth-api/libraries/web3py/
 
 class Actor(object):
-    privateKey = None
-
-
-
-def execStartAuction(exchangeAddress, abi):
-    ### INSTANTIATE WEB3
-    privateKey = "0x2b479a94b50a0d4f445f0c9344586e977f8f57fb39428dcdcb32db3d116cd63f"
-    account = Account.from_key(privateKey)
-    w3 = Web3(Web3.WebsocketProvider("wss://eth-goerli.g.alchemy.com/v2/k-jYAANHqECw4itc_Y8Hn1f7XRXhr86K"))
-   
-    # The NFT
     tokenAddress = "0xf5de760f2e916647fd766B4AD9E85ff943cE3A2b"
     tokenId = 2090420
-    tokenAbi = json.load(open("out/ERC721.sol/ERC721.json"))["abi"]
+    tokenAbi = None
+    exchangeAbi = None
+    privateKey = None
+    exchangeAddress = None
+    account = None
+    w3 = None
+    token = None
 
-    token = w3.eth.contract(address=tokenAddress, abi=tokenAbi)
-    tx = token.functions.approve(exchangeAddress, tokenId).buildTransaction({
-        'from': account.address,
-        'nonce': w3.eth.get_transaction_count(account.address)
-    })
-    signedTx = w3.eth.account.sign_transaction(tx, privateKey)
-    txHash = w3.eth.send_raw_transaction(signedTx.rawTransaction)
-    txReceipt = w3.eth.wait_for_transaction_receipt(txHash)
-    print(txReceipt)
-    exit(1)
-    
-    transact({'from': account.address})
+    def __init__(self, privateKey, exchangeAddress):
+        self.privateKey = privateKey
+        self.account = Account.from_key(privateKey)
+        self.w3 = Web3(Web3.WebsocketProvider("wss://eth-goerli.g.alchemy.com/v2/k-jYAANHqECw4itc_Y8Hn1f7XRXhr86K"))
+        self.exchangeAddress = exchangeAddress
+        self.tokenAbi = json.load(open("out/ERC721.sol/ERC721.json"))["abi"]
+        self.token =  self.w3.eth.contract(address=self.tokenAddress, abi=self.tokenAbi)
+        self.exchangeAbi = json.load(open("out/Exchange.sol/Exchange.json"))["abi"]
+        self.exchange = self.w3.eth.contract(address=exchangeAddress, abi=self.exchangeAbi)
 
-    #.build_transaction({'nonce': web3.eth.get_transaction_count('0xF5...')})
+    def exec(self, fn):
+        tx = fn.buildTransaction({
+            'from': self.account.address,
+            'nonce': self.w3.eth.get_transaction_count(self.account.address)
+        })
+        signedTx = self.w3.eth.account.sign_transaction(tx, self.privateKey)
+        txHash = self.w3.eth.send_raw_transaction(signedTx.rawTransaction)
+        txReceipt = self.w3.eth.wait_for_transaction_receipt(txHash)
+        print(txReceipt)
 
-    print("Approving NFT on Exchange (%s)"%txHash)
-   
+    def setApproval(self):
+        self.exec(self.token.functions.approve(self.exchangeAddress, self.tokenId))
 
-    
+    def startAuction(self, publicKey, puzzle):
+        self.exec(self.exchange.functions.createAuction(self.tokenAddress, self.tokenId, publicKey, puzzle))
 
-     
-    exchange = w3.eth.contract(address=exchangeAddress, abi=abi["abi"])
-    txHash = exchange.functions.createAuction(tokenAddress, tokenId, 0, "0x1234").transact({'from': account.address})
-    #print(txHash)
-
-
-
-'''
-
-def execCommitBid():
-
-
-def execRevealBid():
-
-def execFinalizeAuction():
-
-def 
-'''
 
 
 demo_description = """
@@ -139,18 +122,25 @@ Runs Demo
 @click.command(help=demo_description)
 @click.option('--contract', type=str, default="", help='Exchange contract address')
 def demo(contract):
-    ### Read ABI
-    abi = json.load(open("out/Exchange.sol/Exchange.json"))
-    execStartAuction(contract, abi)
+    ### Create Auctioneer and set NFT aproval
+    print("******* Setting Approval for NFT")
+    auctioneerPrivateKey = "0x2b479a94b50a0d4f445f0c9344586e977f8f57fb39428dcdcb32db3d116cd63f"
+    auctioneer = Actor(auctioneerPrivateKey, contract)
+    auctioneer.setApproval()
+
+    #### First thing we do is setup the auction puzzle
+    print("******* Setting up auction (off-chain)")
+    t = 10000
+    publicKey, puzzle, _ = rsavdf.Setup(1, 128, t)
+    hexEncodedPuzzle = hexEncodePuzzle(puzzle)
+
+    ### Start auction
+    print("******** Starting Auction (on-chain)")
+    auctioneer.startAuction(publicKey, hexEncodedPuzzle)
 
     '''
 
-    #### First thing we do is setup the auction puzzle
-    t = 10000
-    publicKey, puzzle, _ = rsavdf.Setup(1, 128, t)
 
-    ### Hex encode the puzzle for Ethereum
-    hexEncodedPuzzle = hexEncodePuzzle(puzzle)
 
     ### TODO: Start auction on Ethereum
 
