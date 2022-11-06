@@ -91,7 +91,6 @@ class Actor(object):
     def __init__(self, privateKey, exchangeAddress):
         self.privateKey = privateKey
         self.account = Account.from_key(privateKey)
-        print("address = ", self.account.address)
         self.w3 = Web3(Web3.WebsocketProvider("wss://eth-goerli.g.alchemy.com/v2/k-jYAANHqECw4itc_Y8Hn1f7XRXhr86K"))
         self.exchangeAddress = exchangeAddress
         self.tokenAbi = json.load(open("out/ERC721.sol/ERC721.json"))["abi"]
@@ -174,27 +173,24 @@ def demo(contract):
     ### Send bids
     ### In the demo we want the NFT to cycle back to him so we can demo on loop
     print("******** Submitting bids (on-chain)")
+    print("Submitting Bid 1/4")
     bid = 1000
     sealedBid = rsavdf.Enc(bid, publicKey, 65537)
     auctioneer.commitBid(auctionId, sealedBid, 1000)
-    print("sealedBid = ", sealedBid)
+    #print("sealedBid = ", sealedBid)
 
-
-    '''
     ### Send Bids
     bidderPrivateKeys = [
         "0x3b479a94b50a0d4f445f0c9344586e977f8f57fb39428dcdcb32db3d116cd63f", # 0x867Dfc2Db0406451521528BcA135Fb1f772786E3 
         "0x4b479a94b50a0d4f445f0c9344586e977f8f57fb39428dcdcb32db3d116cd63f", # 0xF789F38b269Baf9913e70B6C91f4F622Cb3B47aB
         "0x5b479a94b50a0d4f445f0c9344586e977f8f57fb39428dcdcb32db3d116cd63f", # 0x896789824e8FAfA2372fF418944CD53aAe76aA00
-        "0x6b479a94b50a0d4f445f0c9344586e977f8f57fb39428dcdcb32db3d116cd63f", # 0x41D34dd62686bF75b8666150D49D5046C7aAA945
-        "0x7b479a94b50a0d4f445f0c9344586e977f8f57fb39428dcdcb32db3d116cd63f"  # 0xa6A8260db44C169Bd94CD7b6809B595382A8F832
     ]
+    bids = [997,998,999]
     bidders = [Actor(k, contract) for k in bidderPrivateKeys]
-    for bidder in bidders:
-        bidder.
-
-    '''
-
+    for i,bidder in enumerate(bidders):
+        print("Sending bid %d/4"%(i+2))
+        sealedBid = rsavdf.Enc(bids[i], publicKey, 65537)
+        bidder.commitBid(auctionId, sealedBid, bids[i])
 
     ### Solve Puzzle
     print("******* Solving Puzzle")
