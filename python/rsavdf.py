@@ -1,5 +1,4 @@
 #Use Python3.8
-#Gen as subroutine of Setup
 
 import math
 import time
@@ -7,6 +6,7 @@ import random
 import numpy as np
 from Crypto.Util import number
 from Crypto.Hash import SHAKE256
+import argparse
 
 #Verifier Setup - Setup the modulus a Blum Integer
 def Setup(x, bits, t):
@@ -80,9 +80,7 @@ def Dec(C, y, c, pp, e):
     m = pow(c, d, N) #textbook RSA decrypt no OAEP padding
     return m
 
-# run functions
-
-if __name__ == '__main__':
+def Test():
     t = 100 # 10000000
     bid = 4729473984237489237429
 
@@ -90,7 +88,14 @@ if __name__ == '__main__':
     pp, C, t = Setup(1,128,t)
     print('\n')
     print('len(N)', len(bin(pp)) - 2)
-    #print('N:', pp, '\nC:',  C,  '\nt:', t)
+    print('Public Key:', pp, '\nPuzzle:',  C,  '\nt:', t)
+
+    puzzleComponents = ["{0:#0{1}x}".format(entry,64) for entry in C]
+    puzzle = "0x%s%s%s"%(puzzleComponents[0][2:], puzzleComponents[1][2:], puzzleComponents[2][2:])
+    print(puzzleComponents)
+    print(puzzle)
+    exit(1)
+
     print('Set:' , round(time.time() - start_time , 4), 'seconds')
 
     start_time = time.time()
@@ -107,3 +112,12 @@ if __name__ == '__main__':
     m = Dec(C, y, c, pp, 65537)
     print('m:', m)
     print('Dec:' , round(time.time() - start_time , 4), 'seconds')
+
+# run functions
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+                    prog = 'rsavdf',
+                    description = 'Generates a public-key and timelocked private-key. Encrypts/Decrypts/Solves for private key.')
+
+    Test()
