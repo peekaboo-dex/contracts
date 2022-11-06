@@ -1,4 +1,4 @@
-#Use Python3.8
+# MIT License
 
 import math
 import time

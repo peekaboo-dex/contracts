@@ -42,7 +42,7 @@ The bidders who did not win the auction receive a full refund after the auction 
 
 There are interesting incentive models to be explored in this ecosystem. For example, a Peekaboo utility token could be used to pay for VDF solvers.
 
-# Demo
+# Developers
 
 ### Solidity Dependencies
 We use foundry and test using the Demo and the Goerli testnet
@@ -62,8 +62,8 @@ pip3 install web3
 ./deploy.sh <private key>
 ```
 
-### Running the Demo
-The demo runs the end-to-end workflow on the Goerli testnet:
+### Command-Line Tests (on Goerli testnet)
+This is truns the end-to-end workflow on the Goerli testnet:
 1. Creates an auction
 2. Commits 4 sealed bids
 3. Solves the cryptographic puzzle to reveal the secret key
@@ -74,6 +74,6 @@ The demo runs the end-to-end workflow on the Goerli testnet:
 python3 python/main.py demo --contract 0x397B9515A053c70620a34a4B92bc049F0e31F0da
 ```
 
-### Demo Output
+### Test Expected Output
 <img src="https://github.com/peekaboo-dex/contracts/blob/main/demo_output.png" />
 

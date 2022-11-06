@@ -1,3 +1,4 @@
+# MIT License
 import click 
 import rsavdf
 import time
