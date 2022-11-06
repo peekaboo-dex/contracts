@@ -102,10 +102,11 @@ class Actor(object):
     def call(self, fn):
         print(fn.call())
 
-    def exec(self, fn):
+    def exec(self, fn, value = 0):
         tx = fn.buildTransaction({
             'from': self.account.address,
-            'nonce': self.w3.eth.get_transaction_count(self.account.address)
+            'nonce': self.w3.eth.get_transaction_count(self.account.address),
+            'value': value
         })
         signedTx = self.w3.eth.account.sign_transaction(tx, self.privateKey)
         txHash = self.w3.eth.send_raw_transaction(signedTx.rawTransaction)
@@ -123,17 +124,20 @@ class Actor(object):
         self.exec(fn)
         return auctionId
 
-    def commitBid(self, publicKey, puzzle):
-        self.exec(self.exchange.functions.createAuction(self.tokenAddress, self.tokenId, publicKey, puzzle))
+    def commitBid(self, auctionId, sealedBid, ethToSend):
+        self.exec(self.exchange.functions.commitBid(auctionId, sealedBid), ethToSend)
 
     def revealBid(self, auctionId, bidder):
-        self.exec(self.exchange.functions.finalizeAuction(auctionId, bidder))
+        self.exec(self.exchange.functions.revealBid(auctionId, bidder))
 
     def closeAuction(self, auctionId, p, q, d):
         self.exec(self.exchange.functions.closeAuction(auctionId, p, q, d))
 
     def finalizeAuction(self, auctionId):
         self.exec(self.exchange.functions.finalizeAuction(auctionId))
+
+    def readSealedBid(self, auctionId, bidder):
+        return self.call(self.exchange.functions.sealedBids(auctionId, bidder))
 
     def address(self):
         return self.account.address
@@ -146,16 +150,17 @@ Runs Demo
 @click.command(help=demo_description)
 @click.option('--contract', type=str, default="", help='Exchange contract address')
 def demo(contract):
+    # T-Squarrings!
+    t = 13000000
+
     ### Create Auctioneer and set NFT aproval
     print("******* Setting Approval for NFT")
     auctioneerPrivateKey = "0x2b479a94b50a0d4f445f0c9344586e977f8f57fb39428dcdcb32db3d116cd63f"
     auctioneer = Actor(auctioneerPrivateKey, contract)
     auctioneer.setApproval()
 
-
     #### First thing we do is setup the auction puzzle
     print("******* Setting up auction (off-chain)")
-    t = 13000000
     publicKey, puzzle, _ = rsavdf.Setup(1, 128, t)
     hexEncodedPuzzle = hexEncodePuzzle(puzzle)
     print("Public Key: ", publicKey)
@@ -169,9 +174,11 @@ def demo(contract):
     ### Send bids
     ### In the demo we want the NFT to cycle back to him so we can demo on loop
     print("******** Submitting bids (on-chain)")
-    bid = 1000000000000
+    bid = 1000
     sealedBid = rsavdf.Enc(bid, publicKey, 65537)
-    auctioneer.commitBid(publicKey, sealedBid)
+    auctioneer.commitBid(auctionId, sealedBid, 1000)
+    print("sealedBid = ", sealedBid)
+
 
     '''
     ### Send Bids
@@ -208,7 +215,8 @@ def demo(contract):
     ### Reveal the bid of winner -- who is the auctioneer, for the purposes of the demo.
     ### (this is so the NFT cycles from auctioneer, to auction, back to auctioneer) and we can restart.
     print("******* Revealing Winning Bid! (Only winner has to be revealed)")
-    auctioneer.revealBid(auctionId, auctioneer)
+    print("Revealing for winner=", auctioneer.address())
+    auctioneer.revealBid(auctionId, auctioneer.address())
 
     ### 
     print("******* Finalizing Auction (Settlement)")

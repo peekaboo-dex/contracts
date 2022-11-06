@@ -94,6 +94,7 @@ contract Exchange is IExchange, RSA, IERC721Receiver {
         require(auctions[auctionId].state == AuctionState.OPEN, "Auction is not open");
         require(sealedBid != 0, "Sealed bid must be non-zero");
         require(msg.value != 0, "Must send ETH");
+        // require that user has not already submitted
 
         // Commit bid
         sealedBids[auctionId][msg.sender] = SealedBid({
