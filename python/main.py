@@ -113,11 +113,10 @@ class Actor(object):
         return txReceipt
 
     def setApproval(self):
-        print("Setting approval to %s for %d"%(self.exchangeAddress, self.tokenId))
+        #print("Setting approval to %s for %d"%(self.exchangeAddress, self.tokenId))
         self.exec(self.token.functions.approve(self.exchangeAddress, self.tokenId))
 
     def startAuction(self, publicKey, puzzle):
-        print("Auctioning token id = ", self.tokenId)
         fn = self.exchange.functions.createAuction(self.tokenAddress, self.tokenId, publicKey, puzzle)
         auctionId = fn.call({'from': self.address()})
         self.exec(fn)
@@ -153,30 +152,30 @@ def demo(contract):
     t = 13000000
 
     ### Create Auctioneer and set NFT aproval
-    print("******* Setting Approval for NFT")
+    print("###### Setting Approval for NFT")
     auctioneerPrivateKey = "0x2b479a94b50a0d4f445f0c9344586e977f8f57fb39428dcdcb32db3d116cd63f"
     auctioneer = Actor(auctioneerPrivateKey, contract)
     auctioneer.setApproval()
 
     #### First thing we do is setup the auction puzzle
-    print("******* Setting up auction (off-chain)")
+    print("\n###### Setting up auction (off-chain)")
     publicKey, puzzle, _ = rsavdf.Setup(1, 128, t)
     hexEncodedPuzzle = hexEncodePuzzle(puzzle)
-    print("Public Key: ", publicKey)
-    print("hexPuzzle: ", hexEncodedPuzzle)
+    print("\tPublic Key: ", publicKey)
+    print("\tPuzzle: ", hexEncodedPuzzle)
 
     ### Start auction
-    print("******** Starting Auction (on-chain)")
+    print("\n###### Starting Auction")
     auctionId = auctioneer.startAuction(publicKey, hexEncodedPuzzle)
-    print("AuctionId=", auctionId)
+    print("\tAuctionId=", auctionId)
 
     ### Send bids
     ### In the demo we want the NFT to cycle back to him so we can demo on loop
-    print("******** Submitting bids (on-chain)")
-    print("Submitting Bid 1/4")
-    bid = 1000
+    print("\n###### Committing bids")
+    bid = 42000000
     sealedBid = rsavdf.Enc(bid, publicKey, 65537)
-    auctioneer.commitBid(auctionId, sealedBid, 1000)
+    print("\tCommitting Bid 1/4 (%s)"%sealedBid)
+    auctioneer.commitBid(auctionId, sealedBid, bid)
     #print("sealedBid = ", sealedBid)
 
     ### Send Bids
@@ -185,64 +184,37 @@ def demo(contract):
         "0x4b479a94b50a0d4f445f0c9344586e977f8f57fb39428dcdcb32db3d116cd63f", # 0xF789F38b269Baf9913e70B6C91f4F622Cb3B47aB
         "0x5b479a94b50a0d4f445f0c9344586e977f8f57fb39428dcdcb32db3d116cd63f", # 0x896789824e8FAfA2372fF418944CD53aAe76aA00
     ]
-    bids = [997,998,999]
+    bids = [40003100,39423453,3545355]
     bidders = [Actor(k, contract) for k in bidderPrivateKeys]
     for i,bidder in enumerate(bidders):
-        print("Sending bid %d/4"%(i+2))
         sealedBid = rsavdf.Enc(bids[i], publicKey, 65537)
+        print("\tCommitting Sealed Bid %d/4 (%s)"%((i+2), sealedBid))
         bidder.commitBid(auctionId, sealedBid, bids[i])
 
     ### Solve Puzzle
-    print("******* Solving Puzzle")
+    print("\n###### Solving Puzzle")
     start_time = time.time()
     y,d = rsavdf.Eval(publicKey, puzzle, t)
     p = y[0]
     q = y[1]
     delay = round(time.time() - start_time , 4)
-    print("******* Solved Cryprographic Puzzle in %ds"%delay)
-    print("p=", p)
-    print("q=", q)
-    print("d=", d)
+    print("###### Solved Cryprographic Puzzle in %ds"%delay)
+    print("\tp=", p)
+    print("\tq=", q)
+    print("\td=", d)
 
     ### Close the Auction
-    print("******* Closing Auction")
+    print("\n###### Closing Auction")
     auctioneer.closeAuction(auctionId, p, q, d)
 
     ### Reveal the bid of winner -- who is the auctioneer, for the purposes of the demo.
     ### (this is so the NFT cycles from auctioneer, to auction, back to auctioneer) and we can restart.
-    print("******* Revealing Winning Bid! (Only winner has to be revealed)")
-    print("Revealing for winner=", auctioneer.address())
+    print("\n###### Revealing Winning Bid! (Only winner has to be revealed)")
     auctioneer.revealBid(auctionId, auctioneer.address())
 
     ### 
-    print("******* Finalizing Auction (Settlement)")
+    print("\n###### Finalizing Auction (Settlement)")
     auctioneer.finalizeAuction(auctionId)
- 
-
-    '''
-
-
-
-    ### TODO: Start auction on Ethereum
-
-
-    sleep 5
-    
-    ### Start solving puzzle
-    
-
-
-    start_time = time.time()
-    y = rsavdf.Eval(public_key, hexDecodePuzzle(puzzle), t)
-    delay = round(time.time() - start_time , 4)
-    print({
-        "p": y[0],
-        "q": y[1],
-        "delay": delay
-    })
-    '''
-
-
 
 
 
