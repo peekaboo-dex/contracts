@@ -80,3 +80,7 @@ python3 python/main.py demo --contract 0x397B9515A053c70620a34a4B92bc049F0e31F0d
 # Web Interface Demo
 
 Our web interface demo is in the [interface](https://github.com/peekaboo-dex/interface) repository.
+
+# Branding
+Find us at peekaboodex.eth!
+https://app.ens.domains/name/peekaboodex.eth
