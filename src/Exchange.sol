@@ -74,7 +74,7 @@ contract Exchange is IExchange, RSA, IERC721Receiver {
     // Solves the auction's puzzle. The solution is the secret key (p,q,d).
     // Once this is called anyone can decrypt the bids using the emitted event.
     function closeAuction(uint256 auctionId, uint256 p, uint256 q, uint256 d) external {
-        // TODO - Verify inputs
+        // TODO - sanity checking
 
         // Store puzzle solution
         auctions[auctionId].puzzle.p = p;
@@ -84,6 +84,13 @@ contract Exchange is IExchange, RSA, IERC721Receiver {
         // Bids can now be revealed, so the auction is closed.
         auctions[auctionId].state = AuctionState.CLOSED;
         auctions[auctionId].puzzleSolvedTimestamp = block.timestamp;
+
+        emit AuctionClosed(
+            auctionId,
+            p,
+            q,
+            d
+        );
     }
 
     // Bidder commits to their bid for a given auction.

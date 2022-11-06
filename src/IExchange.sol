@@ -49,7 +49,7 @@ interface IExchange {
         bytes puzzle
     );
 
-    event AuctionPuzzleSolved(
+    event AuctionClosed(
         uint256 indexed auctionId,
         uint256 p,
         uint256 q,
