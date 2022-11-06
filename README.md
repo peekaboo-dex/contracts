@@ -6,6 +6,8 @@ pip3 install sympy
 pip3 install gaussianprimes
 pip3 uninstall pycrypto # Ensure this is not installed
 pip3 install pycryptodome
+pip3 install w3
+pip3 install web3
 
 https://github.com/paulrberg/prb-math
 

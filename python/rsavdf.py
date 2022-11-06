@@ -7,13 +7,9 @@ import numpy as np
 from Crypto.Util import number
 from Crypto.Hash import SHAKE256
 import argparse
+import click
 
-def hexEncodePuzzle(C):
-    if len(C) != 3:
-        raise Exception("Expected puzzle of length 3")
-    puzzleComponents = ["{0:#0{1}x}".format(entry,64) for entry in C]
-    puzzle = "0x%s%s%s"%(puzzleComponents[0][2:], puzzleComponents[1][2:], puzzleComponents[2][2:])
-    return puzzle
+
 
 
 #Verifier Setup - Setup the modulus a Blum Integer
@@ -52,11 +48,6 @@ def Setup(x, bits, t):
         return C, t
     #t = 1000000
     C, t = Gen(pp, t)
-
-    print({
-        "publicKey": pp,
-        "puzzle": hexEncodePuzzle(C)
-    })
 
     return pp, C, t
 
@@ -128,4 +119,6 @@ if __name__ == '__main__':
                     prog = 'rsavdf',
                     description = 'Generates a public-key and timelocked private-key. Encrypts/Decrypts/Solves for private key.')
 
+    parser.add_argument("")
+    
     Test()
