@@ -4,8 +4,9 @@ pragma solidity ^0.8.13;
 import "./IExchange.sol";
 import "./RSA.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
-contract Exchange is IExchange, RSA {
+contract Exchange is IExchange, RSA, IERC721Receiver {
 
     // Current auction Id
     uint256 public currentAuctionId;
@@ -29,6 +30,10 @@ contract Exchange is IExchange, RSA {
 
     constructor(uint256 _finalityDelay) {
         finalityDelay = _finalityDelay;
+    }
+
+    function onERC721Received(address, address, uint256, bytes calldata) external pure returns (bytes4) {
+        return bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"));
     }
 
     // Creates an auction for an NFT.
